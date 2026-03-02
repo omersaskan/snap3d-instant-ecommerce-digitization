@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Uygulama Kimliği -->
+    <key>CFBundleIdentifier</key>
+    <string>com.snap3d.capture</string>
+
+    <key>CFBundleName</key>
+    <string>Snap3D</string>
+
+    <key>CFBundleDisplayName</key>
+    <string>Snap3D</string>
+
+    <key>CFBundleVersion</key>
+    <string>1</string>
+
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+
+    <!-- iOS Minimum Sürüm -->
+    <key>MinimumOSVersion</key>
+    <string>17.0</string>
+
+    <!-- Desteklenen Yönlendirmeler -->
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+
+    <!-- ÖNEMLİ: Kamera izin açıklamaları — App Store için zorunlu -->
+    <key>NSCameraUsageDescription</key>
+    <string>Ürününüzü 3B olarak taramak için kameraya ihtiyaç duyulmaktadır.</string>
+
+    <!-- ObjectCaptureSession için gerekli -->
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>3B modelinizi Fotoğraflar uygulamasına kaydedebilirsiniz.</string>
+
+    <!-- RealityKit AR Session -->
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>arkit</string>
+        <string>lidar</string>
+    </array>
+
+    <!-- LiDAR sensörü zorunlu yapılmak istenirse:
+         lidar → remove this line to allow non-LiDAR devices
+         (ObjectCaptureSession iPhone 15+ LiDAR olmadan da çalışır)
+    -->
+
+    <!-- Cihaz ailesi: yalnızca iPhone -->
+    <key>UIDeviceFamily</key>
+    <array>
+        <integer>1</integer>
+    </array>
+
+    <!-- Scene yapılandırması -->
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+        <key>UIApplicationSupportsMultipleScenes</key>
+        <false/>
+    </dict>
+
+    <!-- Status Bar -->
+    <key>UIStatusBarStyle</key>
+    <string>UIStatusBarStyleLightContent</string>
+    <key>UIViewControllerBasedStatusBarAppearance</key>
+    <false/>
+</dict>
+</plist>

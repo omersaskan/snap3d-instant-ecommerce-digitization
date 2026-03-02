@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Snap3D — 3B Ürün Görüntüleyici</title>
+  <meta name="description" content="Snap3D ile taranan ürünü AR destekli 3B olarak görüntüleyin." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
+
+  <!-- model-viewer -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0a12;
+      --surface:   #13131f;
+      --border:    rgba(255,255,255,0.08);
+      --accent:    #7c5cff;
+      --accent2:   #00d4ff;
+      --text:      #e8e8f0;
+      --muted:     #7070a0;
+      --radius:    16px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── Header ── */
+    header {
+      width: 100%;
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10,10,18,0.85);
+    }
+
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 1.3rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    .logo-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+
+    .badge {
+      padding: 4px 12px; border-radius: 20px;
+      background: rgba(124,92,255,0.15);
+      border: 1px solid rgba(124,92,255,0.3);
+      font-size: 0.75rem; color: var(--accent);
+      font-weight: 600; letter-spacing: 0.5px;
+    }
+
+    /* ── Main ── */
+    main {
+      width: 100%;
+      max-width: 1100px;
+      padding: 48px 24px;
+      flex: 1;
+    }
+
+    .hero-text {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .hero-text h1 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 12px;
+    }
+
+    .hero-text p {
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    /* ── Viewer Card ── */
+    .viewer-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5),
+                  0 0 0 1px rgba(124,92,255,0.05);
+      position: relative;
+    }
+
+    /* Gradient glow arka plan */
+    .viewer-card::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, rgba(124,92,255,0.2), rgba(0,212,255,0.1), transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    model-viewer {
+      width: 100%;
+      height: 560px;
+      background: radial-gradient(ellipse at 50% 60%, #1a1030 0%, #0a0a12 100%);
+      --progress-bar-color: var(--accent);
+      --progress-mask: rgba(10,10,18,0.9);
+      display: block;
+      position: relative; z-index: 1;
+    }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .toolbar-group {
+      display: flex; gap: 10px; flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 9px 18px;
+      border-radius: 10px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #5a3de8);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(124,92,255,0.35);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(124,92,255,0.5); }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); background: rgba(124,92,255,0.06); }
+
+    .btn-ar {
+      background: linear-gradient(135deg, #00c9a7, #00a3cc);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(0,201,167,0.3);
+    }
+    .btn-ar:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,201,167,0.45); }
+
+    /* ── File Upload ── */
+    .upload-section {
+      margin-top: 32px;
+      padding: 28px;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      text-align: center;
+      transition: border-color 0.2s;
+      cursor: pointer;
+    }
+    .upload-section:hover { border-color: var(--accent); }
+    .upload-section p { color: var(--muted); font-size: 0.9rem; }
+    .upload-section strong { color: var(--text); }
+
+    #file-input { display: none; }
+
+    /* ── Info Grid ── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-top: 32px;
+    }
+
+    .info-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .info-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+    .info-value { font-size: 1.1rem; font-weight: 600; color: var(--text); }
+    #model-name { font-size: 0.9rem; }
+
+    /* ── Embed Section ── */
+    .embed-section {
+      margin-top: 32px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+    .embed-section h3 { margin-bottom: 12px; font-size: 1rem; color: var(--text); }
+    .embed-code {
+      background: #0e0e1a;
+      border-radius: 10px;
+      padding: 16px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.78rem;
+      color: #a0c4ff;
+      white-space: pre-wrap;
+      word-break: break-all;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    /* ── Footer ── */
+    footer {
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+      border-top: 1px solid var(--border);
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────────── -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">⬡</div>
+    Snap3D
+  </div>
+  <span class="badge">3B Görüntüleyici</span>
+</header>
+
+<!-- ── Main ──────────────────────────────────────────────────── -->
+<main>
+  <div class="hero-text">
+    <h1>Ürününüzü 3B Görüntüleyin</h1>
+    <p>AR destekli model — döndürün, yakınlaştırın, gerçek ortamınıza yerleştirin.</p>
+  </div>
+
+  <!-- Viewer Card -->
+  <div class="viewer-card">
+    <model-viewer
+      id="snap3d-viewer"
+      src="model.glb"
+      alt="Snap3D ile taranan 3B ürün modeli"
+      ar
+      ar-modes="webxr scene-viewer quick-look"
+      camera-controls
+      auto-rotate
+      auto-rotate-delay="2000"
+      rotation-per-second="20deg"
+      shadow-intensity="1.2"
+      environment-image="neutral"
+      exposure="1.0"
+      tone-mapping="commerce"
+      loading="eager"
+    >
+      <!-- AR butonu (model-viewer yerleşik) -->
+      <button slot="ar-button" class="btn btn-ar" id="ar-btn">
+        📱 AR'da Gör
+      </button>
+
+      <!-- Yükleme göstergesi -->
+      <div slot="progress-bar" id="progress-bar" style="
+        position:absolute; bottom:0; left:0; right:0;
+        height:3px; background: linear-gradient(90deg, #7c5cff, #00d4ff);
+        transform-origin: left; animation: progressIn 2s forwards;
+      "></div>
+    </model-viewer>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <button class="btn btn-outline" id="btn-reset-camera" title="Kamerayı sıfırla">
+          ↺ Sıfırla
+        </button>
+        <button class="btn btn-outline" id="btn-toggle-rotate" title="Otomatik döndürme">
+          ⟳ Döndür
+        </button>
+      </div>
+      <div class="toolbar-group">
+        <a id="btn-download" class="btn btn-outline" href="model.glb" download="snap3d_model.glb">
+          ⬇ GLB İndir
+        </a>
+        <button class="btn btn-primary" id="btn-copy-embed">
+          &lt;/&gt; Embed Kopyala
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kendi GLB yükle -->
+  <div class="upload-section" id="upload-section" onclick="document.getElementById('file-input').click()">
+    <input type="file" id="file-input" accept=".glb,.gltf" />
+    <p><strong>Kendi modelinizi yükleyin</strong><br />GLB veya GLTF dosyasını sürükleyin ya da tıklayın</p>
+  </div>
+
+  <!-- Model bilgileri -->
+  <div class="info-grid">
+    <div class="info-card">
+      <span class="info-label">Dosya Adı</span>
+      <span class="info-value" id="model-name">model.glb</span>
+    </div>
+    <div class="info-card">
+      <span class="info-label">Format</span>
+      <span class="info-value">GLB / glTF 2.0</span>
+    </div>
+    <div class="info-card">
+      <span class="info-label">AR Desteği</span>
+      <span class="info-value">WebXR · ARCore · ARKit</span>
+    </div>
+    <div class="info-card">
+      <span class="info-label">Tarayıcı</span>
+      <span class="info-value" id="browser-info">—</span>
+    </div>
+  </div>
+
+  <!-- Embed kodu -->
+  <div class="embed-section">
+    <h3>&lt;/&gt; Web Sitenize Gömin (Embed)</h3>
+    <div class="embed-code" id="embed-code-display">Embed kodu yükleniyor...</div>
+    <button class="btn btn-primary" style="margin-top:12px" id="btn-copy-embed2">
+      Kopyala
+    </button>
+  </div>
+</main>
+
+<footer>
+  Snap3D Instant E-Commerce Digitization &nbsp;·&nbsp; Powered by &lt;model-viewer&gt; &amp; AR Foundation
+</footer>
+
+<script>
+  // ── Model Viewer Referansı ─────────────────────────────────────────
+  const viewer   = document.getElementById('snap3d-viewer');
+  const fileInput = document.getElementById('file-input');
+
+  // ── Embed Kodu Üret ────────────────────────────────────────────────
+  function buildEmbedCode(modelSrc) {
+    return `<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"><\/script>
+<model-viewer
+  src="${modelSrc}"
+  alt="3B Ürün"
+  ar
+  ar-modes="webxr scene-viewer quick-look"
+  camera-controls
+  auto-rotate
+  shadow-intensity="1"
+  style="width:100%;height:500px;"
+></model-viewer>`;
+  }
+
+  function updateEmbedCode(src) {
+    document.getElementById('embed-code-display').textContent = buildEmbedCode(src);
+  }
+
+  updateEmbedCode('model.glb');
+
+  // ── Dosya Yükleme ──────────────────────────────────────────────────
+  fileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    viewer.src = url;
+    document.getElementById('model-name').textContent = file.name;
+    updateEmbedCode(file.name);
+    document.getElementById('btn-download').href = url;
+    document.getElementById('btn-download').download = file.name;
+  });
+
+  // Sürükle-bırak
+  const uploadArea = document.getElementById('upload-section');
+  uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.style.borderColor = '#7c5cff'; });
+  uploadArea.addEventListener('dragleave', () => { uploadArea.style.borderColor = ''; });
+  uploadArea.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadArea.style.borderColor = '';
+    const file = e.dataTransfer.files[0];
+    if (file && (file.name.endsWith('.glb') || file.name.endsWith('.gltf'))) {
+      const fakeEvent = { target: { files: [file] } };
+      fileInput.files = e.dataTransfer.files;
+      fileInput.dispatchEvent(new Event('change'));
+    }
+  });
+
+  // ── Kamera Sıfırla ────────────────────────────────────────────────
+  document.getElementById('btn-reset-camera').addEventListener('click', () => {
+    viewer.cameraOrbit = 'auto auto auto';
+    viewer.cameraTarget = 'auto auto auto';
+    viewer.fieldOfView = 'auto';
+  });
+
+  // ── Auto-rotate Toggle ────────────────────────────────────────────
+  let rotating = true;
+  document.getElementById('btn-toggle-rotate').addEventListener('click', function () {
+    rotating = !rotating;
+    viewer.autoRotate = rotating;
+    this.textContent = rotating ? '⟳ Döndür' : '⏸ Dur';
+  });
+
+  // ── Embed Kopyala ─────────────────────────────────────────────────
+  function copyEmbed() {
+    const code = document.getElementById('embed-code-display').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+      const btns = document.querySelectorAll('#btn-copy-embed, #btn-copy-embed2');
+      btns.forEach(b => { b.textContent = '✓ Kopyalandı!'; setTimeout(() => b.textContent = b.id === 'btn-copy-embed' ? '</> Embed Kopyala' : 'Kopyala', 2000); });
+    });
+  }
+  document.getElementById('btn-copy-embed').addEventListener('click', copyEmbed);
+  document.getElementById('btn-copy-embed2').addEventListener('click', copyEmbed);
+
+  // ── URL Parametresi: ?model=... ───────────────────────────────────
+  const params = new URLSearchParams(window.location.search);
+  const modelParam = params.get('model');
+  if (modelParam) {
+    viewer.src = modelParam;
+    document.getElementById('model-name').textContent = modelParam.split('/').pop();
+    updateEmbedCode(modelParam);
+  }
+
+  // ── Tarayıcı Bilgisi ──────────────────────────────────────────────
+  document.getElementById('browser-info').textContent =
+    /Chrome/.test(navigator.userAgent) ? 'Chrome (Tam AR Desteği)' :
+    /Safari/.test(navigator.userAgent) ? 'Safari (ARKit Desteği)' :
+    'Diğer';
+</script>
+
+</body>
+</html>

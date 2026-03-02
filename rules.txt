@@ -1,0 +1,74 @@
+Harika bir strateji! **Antigravity** (veya Cursor/Windsurf gibi gelişmiş AI kodlama araçları) ile çalışırken, ona sadece "bir uygulama yap" demek yerine, mimariyi ve veri akışını parçalara ayırıp vermen gerekir.
+
+İşte yatırımcı sunumuna veya App Store/Play Store'a çıkabilecek kalitede, **"E-Ticaret İçin Akıllı 3B Tarayıcı"** kapsamlı Use Case ve teknik akışı:
+
+---
+
+## Use Case: "Snap3D: Instant E-Commerce Digitization"
+
+**Hedef:** Ayakkabı, oyuncak, dekorasyon gibi fiziksel ürün satan KOBİ'lerin, profesyonel ekipman olmadan ürünlerini web sitelerine 3B (AR destekli) eklemesini sağlamak.
+
+### 1. Kullanıcı Senaryosu (User Journey)
+
+1. **Hazırlık:** Kullanıcı ürünü masa üzerine koyar.
+2. **AR Rehber:** Uygulama açılır, AR üzerinden ürünün etrafında şeffaf bir **"Kubbe" (Dome)** belirir.
+3. **Akıllı Çekim:** Kullanıcı telefonu kubbenin etrafında gezdirir. Uygulama, jiroskop verisine dayanarak her 15 derecede bir otomatik fotoğraf çeker (Kullanıcı deklanşöre basmaz).
+4. **Local/Cloud İşleme:** Fotoğraflar arka planda işlenir.
+5. **Otomatik Optimizasyon:** Model 1 milyon poligondan 50 bin poligona iner, delikler kapanır.
+6. **Yayına Alım:** Kullanıcıya bir **iframe/embed kodu** ve **GLB/USDZ** dosyası verilir.
+
+---
+
+## 2. Antigravity İçin Modüler Kodlama Komutları (Prompts)
+
+Antigravity'ye projeyi şu 3 ana modülde kodlatmanı öneririm:
+
+### Modül A: Unity AR Foundation Yakalama Arayüzü
+
+**Antigravity'ye Verilecek Komut:**
+
+> "Unity AR Foundation kullanarak bir 3B tarama arayüzü yaz. Ekranda nesnenin etrafında 1 metre çapında bir Wireframe Yarım Küre (Sphere) oluştur. Kamera hareket ettikçe, kameranın küre üzerindeki konumunu takip et. Her 15 derecelik açı değişiminde `ScreenCapture.CaptureScreenshot` ile fotoğraf çek ve bu fotoğrafları `Application.persistentDataPath` içindeki bir klasöre kaydet. Görsel geri bildirim olarak, fotoğrafı çekilen açıları küre üzerinde yeşile boya."
+
+### Modül B: Python Orkestrasyon ve Processing
+
+**Antigravity'ye Verilecek Komut:**
+
+> "Python ile bir watchdog scripti yaz. Belirli bir klasöre yeni fotoğraflar eklendiğinde bunu algılasın. Eğer 30 fotoğraf tamamlandıysa, bu fotoğrafları Meshroom CLI (veya seçtiğin bir API) üzerinden işle. İşlem bittiğinde oluşan .obj dosyasını otomatik olarak sıradaki Blender scriptine parametre olarak gönder."
+
+### Modül C: Blender "Headless" Optimizasyon Motoru
+
+**Antigravity'ye Verilecek Komut (En Kritik Kısım):**
+
+> "Blender `bpy` kütüphanesini kullanarak ekransız (headless) çalışan bir script yaz. Script şunları yapmalı:
+> 1. Dışarıdan verilen .obj dosyasını import et.
+> 2. `bpy.ops.mesh.remove_doubles` ile üst üste binen noktaları sil.
+> 3. `Decimate Modifier` kullanarak poligon sayısını %90 oranında düşür.
+> 4. `bpy.ops.mesh.fill_holes` ile tarama hatalarını kapat.
+> 5. Modeli `(0,0,0)` noktasına merkezle ve ölçeklendir.
+> 6. Modeli dokularıyla birlikte tek bir .glb dosyası olarak export et."
+> 
+> 
+
+---
+
+## 3. Teknik Mimari Şeması (Antigravity'ye Yol Göstersin)
+
+| Katman | Teknoloji | Görevi |
+| --- | --- | --- |
+| **Frontend** | Unity (C#) | AR rehberlik ve Raw veri toplama. |
+| **Data Layer** | Local Storage / S3 | Fotoğrafların ve metaverilerin saklanması. |
+| **Engine** | Meshroom / AI API | Görüntüden 3B Mesh üretimi. |
+| **Post-Process** | Blender (Python) | Topoloji temizliği ve format dönüştürme. |
+| **Viewer** | <model-viewer> (Web) | Sonucun web üzerinde sergilenmesi. |
+
+---
+
+## 4. İlk Prototip İçin "Action Plan"
+
+Antigravity'ye şu sırayla kodlatmaya başla:
+
+1. **Önce Blender Scriptini yazdır.** Elindeki hazır bir modelle (Polycam çıktısı gibi) bu temizlik scriptinin çalıştığını gör.
+2. **Sonra Unity tarafındaki AR Kubbe (Dome) sistemini yazdır.** Fotoğrafları doğru açılardan alıp almadığını test et.
+3. **En son iki dünyayı Python ile bağla.**
+
+**Antigravity'ye ilk hangi modülü kodlatarak başlamak istersin?** İstersen Blender temizlik scriptinin en karmaşık ve hatasız halini senin için hazırlayabilirim, sen doğrudan ona yapıştırırsın.

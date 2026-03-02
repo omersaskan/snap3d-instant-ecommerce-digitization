@@ -1,0 +1,125 @@
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# ─── Snap3D Runtime Dizinleri (pipeline çıktıları) ───────────────────────────
+captures/
+sessions/
+meshroom_output/
+output_models/
+logs/
+
+# ─── Blender Geçici Dosyaları ─────────────────────────────────────────────────
+*.blend1
+*.blend2
+
+# ─── Swift / Xcode ────────────────────────────────────────────────────────────
+# Build ürünleri
+ModuleA_iOS/Snap3DCapture/build/
+ModuleA_iOS/Snap3DCapture/*.xcworkspace/
+ModuleA_iOS/Snap3DCapture/*/xcuserdata/
+ModuleA_iOS/Snap3DCapture/*.xcodeproj/xcuserdata/
+ModuleA_iOS/Snap3DCapture/*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Cocoapods
+Pods/
+Podfile.lock
+
+# Swift Package Manager
+.build/
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+
+# DerivedData
+DerivedData/
+
+# Archives
+*.ipa
+*.xcarchive
+*.dSYM.zip
+*.dSYM
+
+# ─── macOS ────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+*.Trashes
+*.Spotlight-V100
+
+# ─── Windows ──────────────────────────────────────────────────────────────────
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ─── Unity ────────────────────────────────────────────────────────────────────
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+.vs/
+*.csproj
+*.sln
+*.userprefs
+ExportedObj/
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.opendb
+*.VC.db
+sysinfo.txt
+crashlytics-build.properties
+
+# Unity Packages (büyük dosyalar)
+Assets/AssetStoreTools*
+
+# ─── IDE ──────────────────────────────────────────────────────────────────────
+.idea/
+.vscode/settings.json
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+
+# ─── Hassas Veriler ───────────────────────────────────────────────────────────
+*.env
+.env.local
+*.pem
+*.p12
+*.mobileprovision
+aws_credentials
+# AWS credentials
+.aws/
+
+# ─── GitHub Actions / CI ──────────────────────────────────────────────────────
+# (Bu satır boş bırakıldı — CI dosyaları commit edilmeli)
+
+# ─── Geçici Dosyalar ──────────────────────────────────────────────────────────
+*.tmp
+*.temp
+*.log
+*.bak
+*.swp
+*~
+
+# ─── 3B Model Çıktıları (büyük dosyalar, Git LFS önerilir) ───────────────────
+# Geliştirme sırasında üretilen büyük modelleri takip etme
+*.glb
+*.usdz
+*.obj
+*.fbx
+*.ply
+# ANCAK test modellerini takip etmek istersen şu satırı ekle:
+# !test_models/*.glb

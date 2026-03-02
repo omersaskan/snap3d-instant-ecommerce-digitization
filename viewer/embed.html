@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Snap3D Embed</title>
+    <!-- model-viewer -->
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0d0d17;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            font-family: system-ui, sans-serif;
+            color: #eee;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            padding: 24px 16px;
+        }
+
+        model-viewer {
+            width: 100%;
+            height: 500px;
+            border-radius: 14px;
+            background: radial-gradient(ellipse at center, #1a1035 0%, #0d0d17 100%);
+            --progress-bar-color: #7c5cff;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(124, 92, 255, 0.1);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            font-size: 0.75rem;
+            color: #555;
+        }
+
+        .brand a {
+            color: #7c5cff;
+            text-decoration: none;
+        }
+
+        .brand a:hover {
+            color: #00d4ff;
+        }
+
+        /* AR, tam ekran butonları */
+        .action-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.15s;
+        }
+
+        .btn-ar {
+            background: linear-gradient(135deg, #00c9a7, #00a3cc);
+            color: #fff;
+        }
+
+        .btn-code {
+            background: rgba(124, 92, 255, 0.12);
+            color: #a080ff;
+            border: 1px solid rgba(124, 92, 255, 0.25);
+        }
+
+        .btn-code:hover {
+            background: rgba(124, 92, 255, 0.2);
+        }
+
+        /* Embed code modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: #13131f;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 24px;
+            width: 90%;
+            max-width: 620px;
+        }
+
+        .modal h3 {
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+
+        .modal pre {
+            background: #0a0a14;
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 0.72rem;
+            color: #80b4ff;
+            white-space: pre-wrap;
+            word-break: break-all;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            max-height: 240px;
+            overflow-y: auto;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <!-- 3B Görüntüleyici -->
+        <model-viewer id="embed-viewer" src="model.glb" alt="Snap3D 3B Ürün" ar ar-modes="webxr scene-viewer quick-look"
+            camera-controls auto-rotate auto-rotate-delay="3000" rotation-per-second="15deg" shadow-intensity="1"
+            environment-image="neutral" tone-mapping="commerce" loading="eager">
+            <button slot="ar-button" class="btn btn-ar">📱 AR'da Gör</button>
+        </model-viewer>
+
+        <!-- Alt araç çubuğu -->
+        <div class="action-row">
+            <button class="btn btn-code" id="show-embed">&lt;/&gt; Web Sitene Ekle</button>
+            <a id="download-btn" class="btn btn-code" href="model.glb" download="snap3d_model.glb">⬇ GLB İndir</a>
+        </div>
+
+        <!-- Marka -->
+        <div class="brand">
+            <span>3B model <a href="https://github.com/snap3d" target="_blank">Snap3D</a> ile oluşturuldu</span>
+            <span id="model-source">model.glb</span>
+        </div>
+    </div>
+
+    <!-- Embed Kodu Modal -->
+    <div class="modal-overlay" id="embed-modal">
+        <div class="modal">
+            <h3>Web Sitenize Gömme Kodu</h3>
+            <pre id="modal-code"></pre>
+            <div class="modal-actions">
+                <button class="btn btn-ar" id="copy-code-btn">Kopyala</button>
+                <button class="btn btn-code" id="close-modal-btn">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const viewer = document.getElementById('embed-viewer');
+
+        // URL parametresi: ?model=https://...
+        const params = new URLSearchParams(window.location.search);
+        const modelSrc = params.get('model') || 'model.glb';
+        viewer.src = modelSrc;
+        document.getElementById('model-source').textContent = modelSrc.split('/').pop();
+        document.getElementById('download-btn').href = modelSrc;
+        document.getElementById('download-btn').download = modelSrc.split('/').pop();
+
+        // Embed kodu
+        function getEmbedCode() {
+            return `<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"><\/script>
+<model-viewer
+  src="${modelSrc}"
+  alt="3B Ürün"
+  ar
+  ar-modes="webxr scene-viewer quick-look"
+  camera-controls
+  auto-rotate
+  shadow-intensity="1"
+  style="width:100%;height:480px;border-radius:12px;background:#0d0d17;"
+></model-viewer>`;
+        }
+
+        const modal = document.getElementById('embed-modal');
+        document.getElementById('show-embed').addEventListener('click', () => {
+            document.getElementById('modal-code').textContent = getEmbedCode();
+            modal.classList.add('open');
+        });
+        document.getElementById('close-modal-btn').addEventListener('click', () => modal.classList.remove('open'));
+        modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+
+        document.getElementById('copy-code-btn').addEventListener('click', function () {
+            navigator.clipboard.writeText(getEmbedCode()).then(() => {
+                this.textContent = '✓ Kopyalandı';
+                setTimeout(() => this.textContent = 'Kopyala', 2000);
+            });
+        });
+    </script>
+</body>
+
+</html>

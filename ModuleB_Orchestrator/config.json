@@ -1,0 +1,47 @@
+{
+    "_comment": "Snap3D Orkestrasyon Konfigürasyonu — kendi ortamınıza göre düzenleyin",
+    "capture": {
+        "watch_dir": "../captures",
+        "min_photos": 30,
+        "supported_extensions": [
+            ".jpg",
+            ".jpeg",
+            ".png"
+        ],
+        "debounce_seconds": 3
+    },
+    "meshroom": {
+        "binary": "meshroom_batch",
+        "binary_windows": "meshroom_batch.exe",
+        "binary_linux": "meshroom_batch",
+        "binary_macos": "meshroom_batch",
+        "output_dir": "../meshroom_output",
+        "pipeline": "photogrammetry",
+        "extra_args": []
+    },
+    "blender": {
+        "script": "../ModuleC_Blender/blender_optimizer.py",
+        "runner_windows": "../ModuleC_Blender/run_blender.bat",
+        "runner_unix": "../ModuleC_Blender/run_blender.sh",
+        "output_dir": "../output_models",
+        "decimate": 0.1,
+        "merge_distance": 0.0001,
+        "fill_holes_sides": 4096
+    },
+    "s3": {
+        "enabled": false,
+        "bucket": "snap3d-models",
+        "region": "eu-central-1",
+        "prefix": "models/",
+        "aws_profile": "default"
+    },
+    "upload_server": {
+        "host": "0.0.0.0",
+        "port": 8765,
+        "_note": "Mobil cihazlar bu adrese fotoğraf gönderir. Aynı WiFi ağında olun."
+    },
+    "logging": {
+        "log_file": "../logs/pipeline.log",
+        "level": "INFO"
+    }
+}
