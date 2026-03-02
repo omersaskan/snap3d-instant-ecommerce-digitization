@@ -1,0 +1,104 @@
+workflows:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Snap3D iOS — ObjectCaptureSession Build + TestFlight Deploy
+  # Docs: https://docs.codemagic.io/yaml-quick-start/building-a-native-ios-app/
+  # ─────────────────────────────────────────────────────────────────────────────
+  snap3d-ios:
+    name: Snap3D iOS Build & Deploy
+    max_build_duration: 60   # dakika
+
+    # ── Çalışma ortamı ────────────────────────────────────────────────────────
+    environment:
+      xcode: 15.4           # ObjectCaptureSession için 15.0+ gerekli
+      cocoapods: default
+      vars:
+        BUNDLE_ID: "com.snap3d.capture"
+        APP_STORE_APP_ID: ""   # App Store Connect'te oluşturduktan sonra doldur
+        XCODE_PROJECT: "ModuleA_iOS/Snap3DCapture/Snap3DCapture.xcodeproj"
+        XCODE_SCHEME: "Snap3DCapture"
+      groups:
+        - appstore_credentials  # Codemagic UI > Teams > Integrations'da tanımla
+
+    # ── Tetikleyiciler ────────────────────────────────────────────────────────
+    triggering:
+      events:
+        - push
+        - tag
+      branch_patterns:
+        - pattern: main
+          include: true
+      tag_patterns:
+        - pattern: 'v*'
+          include: true
+
+    # ── Build Adımları ────────────────────────────────────────────────────────
+    scripts:
+      # 1. Xcode projesini oluştur (xcodeproj yok ise)
+      - name: Create Xcode Project
+        script: |
+          cd ModuleA_iOS/Snap3DCapture
+          # Eğer .xcodeproj yoksa XcodeGen veya manuel oluştur
+          if [ ! -f "Snap3DCapture.xcodeproj/project.pbxproj" ]; then
+            echo "⚠️  Snap3DCapture.xcodeproj bulunamadı."
+            echo "Xcode'da projeyi oluşturup GitHub'a push edin."
+            echo "Şimdilik build atlanıyor…"
+            exit 0
+          fi
+
+      # 2. Bağımlılıkları yükle (CocoaPods varsa)
+      - name: Install CocoaPods
+        script: |
+          cd ModuleA_iOS/Snap3DCapture
+          if [ -f "Podfile" ]; then
+            pod install
+          else
+            echo "Podfile bulunamadı, atlanıyor."
+          fi
+
+      # 3. Kod imzalama — Codemagic otomatik yönetir
+      - name: Set up code signing
+        script: |
+          xcode-project use-profiles
+
+      # 4. Archive + IPA oluştur
+      - name: Build & Archive
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme  "$XCODE_SCHEME"
+
+    # ── Çıktı Dosyaları ───────────────────────────────────────────────────────
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
+    # ── TestFlight Dağıtımı ───────────────────────────────────────────────────
+    publishing:
+      app_store_connect:
+        auth: integration           # Codemagic UI'da App Store Connect API key tanımla
+        submit_to_testflight: true
+        beta_groups:
+          - "Internal Testers"
+      email:
+        recipients:
+          - omerfaruksaskan@gmail.com
+        notify:
+          success: true
+          failure: true
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Snap3D Android — Unity Build (İleride eklenecek)
+  # ─────────────────────────────────────────────────────────────────────────────
+  # snap3d-android:
+  #   name: Snap3D Android Build
+  #   environment:
+  #     unity: 2022.3.22f1
+  #   scripts:
+  #     - name: Build Android APK
+  #       script: |
+  #         /Applications/Unity/Unity.app/Contents/MacOS/Unity \
+  #           -batchmode -quit \
+  #           -projectPath ModuleA_Unity \
+  #           -buildTarget Android \
+  #           -executeMethod BuildScript.BuildAndroid
