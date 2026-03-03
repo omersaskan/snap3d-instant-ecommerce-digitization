@@ -2,22 +2,28 @@ workflows:
   # ─────────────────────────────────────────────────────────────────────────────
   # Snap3D iOS — ObjectCaptureSession Build + TestFlight Deploy
   # Docs: https://docs.codemagic.io/yaml-quick-start/building-a-native-ios-app/
+  #
+  # Gerekli Codemagic ortam değişkenleri (UI → Environment variables):
+  #   APP_STORE_CONNECT_KEY_IDENTIFIER  → Apple Developer > Keys > Key ID
+  #   APP_STORE_CONNECT_ISSUER_ID       → App Store Connect > Keys > Issuer ID
+  #   APP_STORE_CONNECT_PRIVATE_KEY     → .p8 dosyasının içeriği (-----BEGIN...)
+  #   CERTIFICATE_PRIVATE_KEY           → Code signing sertifikası private key
   # ─────────────────────────────────────────────────────────────────────────────
   snap3d-ios:
     name: Snap3D iOS Build & Deploy
-    max_build_duration: 60   # dakika
+    max_build_duration: 60
 
     # ── Çalışma ortamı ────────────────────────────────────────────────────────
     environment:
-      xcode: 15.4           # ObjectCaptureSession için 15.0+ gerekli
+      xcode: 15.4
       cocoapods: default
       vars:
         BUNDLE_ID: "com.snap3d.capture"
-        APP_STORE_APP_ID: ""   # App Store Connect'te oluşturduktan sonra doldur
         XCODE_PROJECT: "ModuleA_iOS/Snap3DCapture/Snap3DCapture.xcodeproj"
         XCODE_SCHEME: "Snap3DCapture"
-      groups:
-        - appstore_credentials  # Codemagic UI > Teams > Integrations'da tanımla
+      # Hassas değişkenler Codemagic UI'da Environment variables bölümüne girilir:
+      # APP_STORE_CONNECT_KEY_IDENTIFIER, APP_STORE_CONNECT_ISSUER_ID,
+      # APP_STORE_CONNECT_PRIVATE_KEY, CERTIFICATE_PRIVATE_KEY
 
     # ── Tetikleyiciler ────────────────────────────────────────────────────────
     triggering:
@@ -28,40 +34,40 @@ workflows:
         - pattern: main
           include: true
       tag_patterns:
-        - pattern: 'v*'
+        - pattern: "v*"
           include: true
 
     # ── Build Adımları ────────────────────────────────────────────────────────
     scripts:
-      # 1. Xcode projesini oluştur (xcodeproj yok ise)
-      - name: Create Xcode Project
+      - name: Check Xcode Project Exists
         script: |
-          cd ModuleA_iOS/Snap3DCapture
-          # Eğer .xcodeproj yoksa XcodeGen veya manuel oluştur
-          if [ ! -f "Snap3DCapture.xcodeproj/project.pbxproj" ]; then
-            echo "⚠️  Snap3DCapture.xcodeproj bulunamadı."
-            echo "Xcode'da projeyi oluşturup GitHub'a push edin."
-            echo "Şimdilik build atlanıyor…"
-            exit 0
+          if [ ! -f "$XCODE_PROJECT/project.pbxproj" ]; then
+            echo "⚠️  $XCODE_PROJECT bulunamadı."
+            echo "Mac'te Xcode ile projeyi oluşturup GitHub'a push edin."
+            exit 1
           fi
+          echo "✅ Xcode projesi bulundu: $XCODE_PROJECT"
 
-      # 2. Bağımlılıkları yükle (CocoaPods varsa)
-      - name: Install CocoaPods
+      - name: Install CocoaPods (if needed)
         script: |
           cd ModuleA_iOS/Snap3DCapture
           if [ -f "Podfile" ]; then
             pod install
-          else
-            echo "Podfile bulunamadı, atlanıyor."
           fi
 
-      # 3. Kod imzalama — Codemagic otomatik yönetir
+      - name: Set up App Store Connect API key
+        script: |
+          # PRIVATE_KEY environment variable'dan .p8 dosyası oluştur
+          mkdir -p ~/.private_keys
+          echo "$APP_STORE_CONNECT_PRIVATE_KEY" > \
+            ~/.private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8
+          chmod 600 ~/.private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8
+
       - name: Set up code signing
         script: |
           xcode-project use-profiles
 
-      # 4. Archive + IPA oluştur
-      - name: Build & Archive
+      - name: Build & Archive IPA
         script: |
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
@@ -76,7 +82,9 @@ workflows:
     # ── TestFlight Dağıtımı ───────────────────────────────────────────────────
     publishing:
       app_store_connect:
-        auth: integration           # Codemagic UI'da App Store Connect API key tanımla
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
         beta_groups:
           - "Internal Testers"
@@ -97,8 +105,6 @@ workflows:
   #   scripts:
   #     - name: Build Android APK
   #       script: |
-  #         /Applications/Unity/Unity.app/Contents/MacOS/Unity \
-  #           -batchmode -quit \
+  #         Unity -batchmode -quit \
   #           -projectPath ModuleA_Unity \
-  #           -buildTarget Android \
-  #           -executeMethod BuildScript.BuildAndroid
+  #           -buildTarget Android
