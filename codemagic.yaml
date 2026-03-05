@@ -39,14 +39,16 @@ workflows:
 
     # ── Build Adımları ────────────────────────────────────────────────────────
     scripts:
-      - name: Check Xcode Project Exists
+      - name: Install XcodeGen
         script: |
-          if [ ! -f "$XCODE_PROJECT/project.pbxproj" ]; then
-            echo "⚠️  $XCODE_PROJECT bulunamadı."
-            echo "Mac'te Xcode ile projeyi oluşturup GitHub'a push edin."
-            exit 1
-          fi
-          echo "✅ Xcode projesi bulundu: $XCODE_PROJECT"
+          # XcodeGen: project.yml'den .xcodeproj üretir — Mac gerektirmez
+          brew install xcodegen
+
+      - name: Generate Xcode Project
+        script: |
+          cd ModuleA_iOS/Snap3DCapture
+          xcodegen generate
+          echo "✅ Xcode projesi oluşturuldu: $(ls *.xcodeproj)"
 
       - name: Install CocoaPods (if needed)
         script: |
@@ -57,7 +59,6 @@ workflows:
 
       - name: Set up App Store Connect API key
         script: |
-          # PRIVATE_KEY environment variable'dan .p8 dosyası oluştur
           mkdir -p ~/.private_keys
           echo "$APP_STORE_CONNECT_PRIVATE_KEY" > \
             ~/.private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8

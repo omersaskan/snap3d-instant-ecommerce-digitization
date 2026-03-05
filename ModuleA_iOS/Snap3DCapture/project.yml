@@ -1,0 +1,76 @@
+# XcodeGen Project Spec — Snap3DCapture
+# Docs: https://github.com/yonaskolb/XcodeGen/blob/master/Docs/ProjectSpec.md
+#
+# Kullanım (Codemagic mac runner üzerinde otomatik çalışır):
+#   brew install xcodegen
+#   xcodegen generate
+
+name: Snap3DCapture
+
+options:
+  bundleIdPrefix: com.snap3d
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "16.2"
+  generateEmptyDirectories: true
+  groupSortPosition: top
+
+targets:
+  Snap3DCapture:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+
+    # Kaynak dosyalar — tüm Swift dosyaları ve Info.plist
+    sources:
+      - path: Snap3DCapture
+        type: group
+        createIntermediateGroups: true
+
+    # Info.plist
+    info:
+      path: Snap3DCapture/Info.plist
+
+    # Build Ayarları
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.snap3d.capture
+        PRODUCT_NAME: Snap3D
+        SWIFT_VERSION: "5.9"
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        TARGETED_DEVICE_FAMILY: "1"          # Yalnızca iPhone
+        ENABLE_PREVIEWS: "YES"
+        SWIFT_STRICT_CONCURRENCY: complete
+        # Code Signing (Codemagic otomatik yönetir)
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: ""                 # Codemagic teamId ekler
+
+    # Framework Bağımlılıkları
+    dependencies:
+      - sdk: RealityKit.framework
+      - sdk: ARKit.framework
+      - sdk: QuickLook.framework
+      - sdk: UIKit.framework
+
+    # Uygulama Özellikleri (Capabilities)
+    entitlements:
+      path: Snap3DCapture/Snap3DCapture.entitlements
+      properties:
+        com.apple.developer.arkit: true
+
+schemes:
+  Snap3DCapture:
+    build:
+      targets:
+        Snap3DCapture: all
+    run:
+      config: Debug
+      launchAutomaticallySubstyle: 2
+    test:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
