@@ -64,15 +64,29 @@ workflows:
             ~/.private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8
           chmod 600 ~/.private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8
 
+      - name: Register test device (UDID)
+        script: |
+          # Test iPhone'unun UDID'ini Apple Developer'a kaydet
+          # TEST_DEVICE_UDID ve TEST_DEVICE_NAME Codemagic env variables olarak ekle
+          if [ -n "$TEST_DEVICE_UDID" ]; then
+            app-store-connect devices register \
+              "$TEST_DEVICE_NAME" \
+              "$TEST_DEVICE_UDID" \
+              --platform IOS
+            echo "✅ Cihaz kaydedildi: $TEST_DEVICE_NAME ($TEST_DEVICE_UDID)"
+          else
+            echo "ℹ️  TEST_DEVICE_UDID tanımlı değil, cihaz kaydı atlanıyor."
+          fi
+
       - name: Set up code signing
         script: |
           # 1) Geçici keychain başlat
           keychain initialize
 
-          # 2) App Store Connect API key ile provisioning profile otomatik çek/oluştur
+          # 2) Development profili çek — App Store kaydı GEREKMEZ
           app-store-connect fetch-signing-files \
             "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
+            --type IOS_APP_DEVELOPMENT \
             --create
 
           # 3) Sertifikaları keychain'e ekle
@@ -95,13 +109,8 @@ workflows:
 
     # ── TestFlight Dağıtımı ───────────────────────────────────────────────────
     publishing:
-      app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-        submit_to_testflight: true
-        beta_groups:
-          - "Internal Testers"
+      # IPA artifact olarak indir → Sideloadly ile iPhone'a kur
+      # App Store'a hazır olunca: submit_to_testflight: true ekle
       email:
         recipients:
           - omerfaruksaskan@gmail.com
