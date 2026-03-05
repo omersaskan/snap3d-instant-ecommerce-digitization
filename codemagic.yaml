@@ -15,7 +15,7 @@ workflows:
 
     # ── Çalışma ortamı ────────────────────────────────────────────────────────
     environment:
-      xcode: 15.4
+      xcode: 16.2
       cocoapods: default
       vars:
         BUNDLE_ID: "com.snap3d.capture"
