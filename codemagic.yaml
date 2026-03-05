@@ -66,6 +66,19 @@ workflows:
 
       - name: Set up code signing
         script: |
+          # 1) Geçici keychain başlat
+          keychain initialize
+
+          # 2) App Store Connect API key ile provisioning profile otomatik çek/oluştur
+          app-store-connect fetch-signing-files \
+            "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+
+          # 3) Sertifikaları keychain'e ekle
+          keychain add-certificates
+
+          # 4) Xcode projesine profilleri uygula
           xcode-project use-profiles
 
       - name: Build & Archive IPA
