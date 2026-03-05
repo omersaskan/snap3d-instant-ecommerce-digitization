@@ -92,14 +92,18 @@ workflows:
           # 3) Sertifikaları keychain'e ekle
           keychain add-certificates
 
-          # 4) Xcode projesine profilleri uygula
+          # 4) XcodeGen'in oluşturduğu .xcodeproj dizininden profil uygula
+          cd ModuleA_iOS/Snap3DCapture
           xcode-project use-profiles
 
       - name: Build & Archive IPA
         script: |
+          set -xe   # Her komutu yazdır, hata anında dur
+          # XcodeGen'in oluşturduğu dizine geç ve build üzet
+          cd ModuleA_iOS/Snap3DCapture
           xcode-project build-ipa \
-            --project "$XCODE_PROJECT" \
-            --scheme  "$XCODE_SCHEME"
+            --project Snap3DCapture.xcodeproj \
+            --scheme  Snap3DCapture
 
     # ── Çıktı Dosyaları ───────────────────────────────────────────────────────
     artifacts:
