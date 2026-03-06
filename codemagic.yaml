@@ -1,137 +1,60 @@
 workflows:
   # ─────────────────────────────────────────────────────────────────────────────
-  # Snap3D iOS — ObjectCaptureSession Build + TestFlight Deploy
-  # Docs: https://docs.codemagic.io/yaml-quick-start/building-a-native-ios-app/
+  # Snap3D iOS — Derleme Doğrulaması (Simulator Build)
   #
-  # Gerekli Codemagic ortam değişkenleri (UI → Environment variables):
-  #   APP_STORE_CONNECT_KEY_IDENTIFIER  → Apple Developer > Keys > Key ID
-  #   APP_STORE_CONNECT_ISSUER_ID       → App Store Connect > Keys > Issuer ID
-  #   APP_STORE_CONNECT_PRIVATE_KEY     → .p8 dosyasının içeriği (-----BEGIN...)
-  #   CERTIFICATE_PRIVATE_KEY           → Code signing sertifikası private key
+  # Apple Developer hesabı gerektirmez.
+  # Swift kodunun derlenip derlenmediğini doğrular.
+  # Codemagic ücretsiz tier (500 dk/ay) yeterlidir.
+  #
+  # Fiziksel iPhone'a deploy etmek için:
+  #   1. Apple Developer Program'a kaydol ($99/yıl)
+  #   2. APP_STORE_CONNECT_ISSUER_ID, KEY_IDENTIFIER, PRIVATE_KEY ekle
+  #   3. CODE_SIGNING_ALLOWED=YES yap, fetch-signing-files adımını aç
   # ─────────────────────────────────────────────────────────────────────────────
   snap3d-ios:
-    name: Snap3D iOS Build & Deploy
-    max_build_duration: 60
+    name: Snap3D iOS Build Verification
+    max_build_duration: 30
 
-    # ── Çalışma ortamı ────────────────────────────────────────────────────────
     environment:
       xcode: 16.2
-      cocoapods: default
       vars:
-        BUNDLE_ID: "com.snap3d.capture"
-        XCODE_PROJECT: "ModuleA_iOS/Snap3DCapture/Snap3DCapture.xcodeproj"
         XCODE_SCHEME: "Snap3DCapture"
-      # Hassas değişkenler Codemagic UI'da Environment variables bölümüne girilir:
-      # APP_STORE_CONNECT_KEY_IDENTIFIER, APP_STORE_CONNECT_ISSUER_ID,
-      # APP_STORE_CONNECT_PRIVATE_KEY, CERTIFICATE_PRIVATE_KEY
 
-    # ── Tetikleyiciler ────────────────────────────────────────────────────────
     triggering:
       events:
         - push
-        - tag
       branch_patterns:
         - pattern: main
           include: true
-      tag_patterns:
-        - pattern: "v*"
-          include: true
 
-    # ── Build Adımları ────────────────────────────────────────────────────────
     scripts:
       - name: Install XcodeGen
-        script: |
-          # XcodeGen: project.yml'den .xcodeproj üretir — Mac gerektirmez
-          brew install xcodegen
+        script: brew install xcodegen
 
       - name: Generate Xcode Project
         script: |
           cd ModuleA_iOS/Snap3DCapture
           xcodegen generate
-          echo "✅ Xcode projesi oluşturuldu: $(ls *.xcodeproj)"
+          echo "✅ $(ls *.xcodeproj)"
 
-      - name: Install CocoaPods (if needed)
+      - name: Build (Simulator — No Signing)
         script: |
+          set -xe
           cd ModuleA_iOS/Snap3DCapture
-          if [ -f "Podfile" ]; then
-            pod install
-          fi
+          xcodebuild build \
+            -project Snap3DCapture.xcodeproj \
+            -scheme "$XCODE_SCHEME" \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO
 
-      - name: Set up App Store Connect API key
-        script: |
-          mkdir -p ~/.private_keys
-          echo "$APP_STORE_CONNECT_PRIVATE_KEY" > \
-            ~/.private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8
-          chmod 600 ~/.private_keys/AuthKey_${APP_STORE_CONNECT_KEY_IDENTIFIER}.p8
-
-      - name: Register test device (UDID)
-        script: |
-          # Test iPhone'unun UDID'ini Apple Developer'a kaydet
-          # TEST_DEVICE_UDID ve TEST_DEVICE_NAME Codemagic env variables olarak ekle
-          if [ -n "$TEST_DEVICE_UDID" ]; then
-            app-store-connect devices register \
-              "$TEST_DEVICE_NAME" \
-              "$TEST_DEVICE_UDID" \
-              --platform IOS
-            echo "✅ Cihaz kaydedildi: $TEST_DEVICE_NAME ($TEST_DEVICE_UDID)"
-          else
-            echo "ℹ️  TEST_DEVICE_UDID tanımlı değil, cihaz kaydı atlanıyor."
-          fi
-
-      - name: Set up code signing
-        script: |
-          # 1) Geçici keychain başlat
-          keychain initialize
-
-          # 2) Development profili çek — App Store kaydı GEREKMEZ
-          app-store-connect fetch-signing-files \
-            "$BUNDLE_ID" \
-            --type IOS_APP_DEVELOPMENT \
-            --create
-
-          # 3) Sertifikaları keychain'e ekle
-          keychain add-certificates
-
-          # 4) XcodeGen'in oluşturduğu .xcodeproj dizininden profil uygula
-          cd ModuleA_iOS/Snap3DCapture
-          xcode-project use-profiles
-
-      - name: Build & Archive IPA
-        script: |
-          set -xe   # Her komutu yazdır, hata anında dur
-          # XcodeGen'in oluşturduğu dizine geç ve build üzet
-          cd ModuleA_iOS/Snap3DCapture
-          xcode-project build-ipa \
-            --project Snap3DCapture.xcodeproj \
-            --scheme  Snap3DCapture
-
-    # ── Çıktı Dosyaları ───────────────────────────────────────────────────────
     artifacts:
-      - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
 
-    # ── TestFlight Dağıtımı ───────────────────────────────────────────────────
     publishing:
-      # IPA artifact olarak indir → Sideloadly ile iPhone'a kur
-      # App Store'a hazır olunca: submit_to_testflight: true ekle
       email:
         recipients:
           - omerfaruksaskan@gmail.com
         notify:
           success: true
           failure: true
-
-  # ─────────────────────────────────────────────────────────────────────────────
-  # Snap3D Android — Unity Build (İleride eklenecek)
-  # ─────────────────────────────────────────────────────────────────────────────
-  # snap3d-android:
-  #   name: Snap3D Android Build
-  #   environment:
-  #     unity: 2022.3.22f1
-  #   scripts:
-  #     - name: Build Android APK
-  #       script: |
-  #         Unity -batchmode -quit \
-  #           -projectPath ModuleA_Unity \
-  #           -buildTarget Android
