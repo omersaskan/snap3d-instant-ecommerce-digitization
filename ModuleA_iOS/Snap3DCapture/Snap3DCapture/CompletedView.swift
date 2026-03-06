@@ -3,7 +3,6 @@
 // USDZ dosyasını paylaşma, AR'da önizleme ve web embed seçenekleri sunar.
 
 import SwiftUI
-import RealityKit
 import QuickLook
 
 struct CompletedView: View {
@@ -78,11 +77,9 @@ struct CompletedView: View {
                     }
                     .frame(height: 140)
                     .padding(.horizontal, 24)
-                    .quickLookPreview($showQuickLook.asURL(modelURL))
 
                     // ── Eylem Butonları ──────────────────────────────────––
                     VStack(spacing: 12) {
-                        // USDZ olarak paylaş
                         ActionButton(
                             title: "USDZ Olarak Paylaş",
                             subtitle: "AirDrop, Mail, Dosyalar…",
@@ -92,7 +89,6 @@ struct CompletedView: View {
                             showShareSheet = true
                         }
 
-                        // Web embed kodu
                         ActionButton(
                             title: embedCopied ? "✓ Embed Kodu Kopyalandı!" : "Web Embed Kodu Al",
                             subtitle: "model-viewer iframe kodu",
@@ -102,7 +98,6 @@ struct CompletedView: View {
                             copyEmbedCode(for: modelURL)
                         }
 
-                        // Yeni tarama
                         ActionButton(
                             title: "Yeni Tarama Başlat",
                             subtitle: "Başa dön",
@@ -115,7 +110,6 @@ struct CompletedView: View {
                     .padding(.horizontal, 24)
                     .padding(.top, 20)
 
-                    // Dosya boyutu bilgisi
                     if let size = fileSize(for: modelURL) {
                         Text("Dosya boyutu: \(size)")
                             .font(.caption)
@@ -133,11 +127,14 @@ struct CompletedView: View {
                 ShareSheet(url: url)
             }
         }
+        .sheet(isPresented: $showQuickLook) {
+            if let url = appModel.outputModelURL {
+                QuickLookPreviewWrapper(url: url)
+            }
+        }
     }
 
     private func copyEmbedCode(for url: URL) {
-        // Web viewer embed kodu — model Snap3D sunucusuna yüklendikten sonra
-        // gerçek URL burada kullanılır
         let code = """
 <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
 <model-viewer
@@ -206,13 +203,24 @@ struct ActionButton: View {
     }
 }
 
-// QuickLook için Binding<URL?> uzantısı
-extension Binding where Value == Bool {
-    func asURL(_ url: URL) -> Binding<URL?> {
-        Binding<URL?>(
-            get: { self.wrappedValue ? url : nil },
-            set: { self.wrappedValue = $0 != nil }
-        )
+// MARK: - QuickLook Preview Wrapper (sheet-based, no Binding<URL?> extension needed)
+struct QuickLookPreviewWrapper: UIViewControllerRepresentable {
+    let url: URL
+    func makeUIViewController(context: Context) -> QLPreviewController {
+        let controller = QLPreviewController()
+        controller.dataSource = context.coordinator
+        return controller
+    }
+    func updateUIViewController(_ vc: QLPreviewController, context: Context) {}
+    func makeCoordinator() -> Coordinator { Coordinator(url: url) }
+
+    class Coordinator: NSObject, QLPreviewControllerDataSource {
+        let url: URL
+        init(url: URL) { self.url = url }
+        func numberOfPreviewItems(in controller: QLPreviewController) -> Int { 1 }
+        func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
+            url as QLPreviewItem
+        }
     }
 }
 

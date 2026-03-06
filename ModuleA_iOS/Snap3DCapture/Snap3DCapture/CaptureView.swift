@@ -2,32 +2,44 @@
 // Snap3D — AR Tarama Ekranı
 //
 // Apple'ın ObjectCaptureView'ını kullanarak nesneyi tarar.
-// Rules.txt'deki "AR Rehber + Akıllı Çekim" modülüne karşılık gelir.
-// ObjectCaptureView otomatik olarak kılavuz gösterir, döndürme yönlendirmesi
-// yapar ve kullanıcıyı "Tamamla" aşamasına götürür.
+// ObjectCaptureView simülatörde mevcut değildir.
 
 import SwiftUI
+
+#if !targetEnvironment(simulator)
 import RealityKit
+#endif
 
 struct CaptureView: View {
     @ObservedObject var appModel: AppDataModel
 
     var body: some View {
+        #if targetEnvironment(simulator)
+        // Simulator: Stub görünüm
         ZStack {
-
-            // ── Apple'ın Native AR Tarama Görünümü ──────────────────────────
-            // ObjectCaptureView:
-            //  • Kamera görüntüsü + nesne etrafında AR bounding box
-            //  • Kullanıcıya "sola git", "yukarı git" yönlendirmesi
-            //  • Çekilen açıları yeşil olarak işaretler (tam rules.txt gibi)
-            //  • Otomatik döndürme tamamlama önerisi
+            Color(red: 0.05, green: 0.05, blue: 0.15).ignoresSafeArea()
+            VStack(spacing: 20) {
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 60))
+                    .foregroundStyle(.gray)
+                Text("ObjectCaptureView")
+                    .font(.title2.bold())
+                    .foregroundStyle(.white)
+                Text("Simulator'da AR tarama desteklenmiyor.\nFiziksel iPhone gereklidir.")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.5))
+                    .multilineTextAlignment(.center)
+                Button("Geri Dön") { appModel.reset() }
+                    .foregroundStyle(.blue)
+            }
+        }
+        #else
+        ZStack {
             if let session = appModel.captureSession {
                 ObjectCaptureView(session: session)
                     .ignoresSafeArea()
 
-                // Overlay UI
                 VStack {
-                    // ── Başlık ─────────────────────────────────────────────
                     HStack {
                         Button(action: { appModel.reset() }) {
                             Image(systemName: "xmark.circle.fill")
@@ -43,7 +55,6 @@ struct CaptureView: View {
                             .padding(12)
                             .background(.ultraThinMaterial, in: Capsule())
                         Spacer()
-                        // ARCore Geri bildirim göstergesi
                         Image(systemName: "camera.circle.fill")
                             .font(.title2)
                             .foregroundStyle(feedbackIconColor)
@@ -55,7 +66,6 @@ struct CaptureView: View {
 
                     Spacer()
 
-                    // ── Feedback Mesajları ─────────────────────────────────
                     if !appModel.feedbackMessages.isEmpty {
                         VStack(spacing: 6) {
                             ForEach(appModel.feedbackMessages, id: \.self) { msg in
@@ -71,9 +81,6 @@ struct CaptureView: View {
                         .animation(.spring(), value: appModel.feedbackMessages)
                     }
 
-                    // ── Tamamla Butonu ─────────────────────────────────────
-                    // ObjectCaptureSession'ın userCompletedScanPass değeri
-                    // true olduğunda bu butonu göster
                     Button(action: { appModel.finishCapture() }) {
                         Label("Taramayı Tamamla", systemImage: "checkmark.circle.fill")
                             .font(.headline)
@@ -97,10 +104,12 @@ struct CaptureView: View {
             }
         }
         .preferredColorScheme(.dark)
+        #endif
     }
 
-    // Geri bildirim varsa sarı, yoksa yeşil ikon
+    #if !targetEnvironment(simulator)
     private var feedbackIconColor: Color {
         appModel.feedbackMessages.isEmpty ? .green : .yellow
     }
+    #endif
 }

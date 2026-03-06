@@ -3,7 +3,6 @@
 // iOS 17.0+ gerektirir, iPhone 12 Pro+ (A14 Bionic + LiDAR önerilir)
 
 import SwiftUI
-import RealityKit
 
 @main
 struct Snap3DCaptureApp: App {

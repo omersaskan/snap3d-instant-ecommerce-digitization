@@ -3,12 +3,19 @@
 //
 // ObjectCaptureSession + PhotogrammetrySession'ı koordine eder.
 // Cihaz üzerinde tüm 3D model üretimini yönetir — sunucu gerektirmez.
+//
+// NOT: ObjectCaptureSession ve PhotogrammetrySession API'leri
+// iOS Simulator'da mevcut DEĞİLDİR. Simulator build'leri için
+// stub implementasyon kullanılır.
 
 import Foundation
-import RealityKit
-import Combine
 import SwiftUI
 import OSLog
+
+#if !targetEnvironment(simulator)
+import RealityKit
+import Combine
+#endif
 
 private let logger = Logger(subsystem: "com.snap3d.capture", category: "AppDataModel")
 
@@ -17,12 +24,15 @@ final class AppDataModel: ObservableObject {
 
     // ─── Yayımlanan State ──────────────────────────────────────────────────
     @Published var state: AppState = .ready
-    @Published var captureSession: ObjectCaptureSession?
     @Published var shotCount: Int = 0
     @Published var feedbackMessages: [String] = []
     @Published var reconstructionProgress: Float = 0.0
     @Published var outputModelURL: URL?
     @Published var outputGLBURL: URL?
+
+    #if !targetEnvironment(simulator)
+    @Published var captureSession: ObjectCaptureSession?
+    #endif
 
     // ─── Oturum Dizinleri ─────────────────────────────────────────────────
     private var imagesDirectory: URL?
@@ -30,19 +40,24 @@ final class AppDataModel: ObservableObject {
     private var outputDirectory: URL?
 
     // ─── Destekli Cihaz Kontrolü ──────────────────────────────────────────
-    /// ObjectCaptureSession iOS 17+ ve A14 Bionic+ gerektirir
     static var isSupported: Bool {
-        ObjectCaptureSession.isSupported
+        #if targetEnvironment(simulator)
+        return false
+        #else
+        return ObjectCaptureSession.isSupported
+        #endif
     }
 
     // ─── Yeni Tarama Başlat ───────────────────────────────────────────────
     func startCapture() {
+        #if targetEnvironment(simulator)
+        state = .failed("Simulator'da Object Capture desteklenmiyor.\nFiziksel iPhone gereklidir.")
+        #else
         guard Self.isSupported else {
             state = .failed("Bu cihaz Object Capture'ı desteklemiyor.\niPhone 12 Pro veya üzeri gereklidir.")
             return
         }
 
-        // Geçici dizinleri hazırla
         let sessionID = UUID().uuidString
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("Snap3D/\(sessionID)")
 
@@ -59,32 +74,29 @@ final class AppDataModel: ObservableObject {
             return
         }
 
-        // ObjectCaptureSession oluştur
         let session = ObjectCaptureSession()
         captureSession = session
         shotCount = 0
         feedbackMessages = []
 
-        // State değişikliklerini dinle
         observeSession(session)
 
-        // Konfigürasyon: Checkpoint desteği + yüksek kalite
         var config = ObjectCaptureSession.Configuration()
         config.checkpointDirectory = checkpointDirectory
-        config.isOverCaptureEnabled = true   // Aşırı yakalama = daha iyi kalite
+        config.isOverCaptureEnabled = true
 
-        // Başlat
         session.start(imagesDirectory: imagesDirectory!, configuration: config)
         state = .capturing
 
         logger.info("ObjectCaptureSession başlatıldı → \(self.imagesDirectory!.path)")
+        #endif
     }
 
     // ─── Session Gözlemcileri ─────────────────────────────────────────────
+    #if !targetEnvironment(simulator)
     private var cancellables = Set<AnyCancellable>()
 
     private func observeSession(_ session: ObjectCaptureSession) {
-        // Çekim sayısı
         session.$userCompletedScanPass
             .compactMap { $0 }
             .receive(on: DispatchQueue.main)
@@ -93,7 +105,6 @@ final class AppDataModel: ObservableObject {
             }
             .store(in: &cancellables)
 
-        // Geri bildirim
         session.$feedback
             .receive(on: DispatchQueue.main)
             .sink { [weak self] feedback in
@@ -101,7 +112,6 @@ final class AppDataModel: ObservableObject {
             }
             .store(in: &cancellables)
 
-        // Hata
         session.$state
             .receive(on: DispatchQueue.main)
             .sink { [weak self] sessionState in
@@ -111,11 +121,14 @@ final class AppDataModel: ObservableObject {
             }
             .store(in: &cancellables)
     }
+    #endif
 
     // ─── Tarama Geçişini Tamamla ─────────────────────────────────────────
     func finishCapture() {
+        #if !targetEnvironment(simulator)
         captureSession?.finish()
         maybeStartReconstruction()
+        #endif
     }
 
     private func maybeStartReconstruction() {
@@ -129,24 +142,24 @@ final class AppDataModel: ObservableObject {
 
     // ─── Cihaz Üzerinde Fotogrametri (PhotogrammetrySession) ─────────────
     private func reconstruct(imagesDirectory: URL, outputDirectory: URL) async {
+        #if targetEnvironment(simulator)
+        await MainActor.run { self.state = .failed("Simulator'da fotogrametri desteklenmiyor.") }
+        #else
         logger.info("PhotogrammetrySession başlatılıyor…")
 
-        // Çıktı USDZ dosyası
         let usdzURL = outputDirectory.appendingPathComponent("snap3d_model.usdz")
 
         do {
             var config = PhotogrammetrySession.Configuration()
             config.sampleOrdering         = .unordered
             config.featureSensitivity     = .normal
-            config.isObjectMaskingEnabled = true   // Arka planı otomatik maskele
+            config.isObjectMaskingEnabled = true
 
             let session = try PhotogrammetrySession(
                 input: imagesDirectory,
                 configuration: config
             )
 
-            // İstek: Detail.medium → denge kalite/boyut
-            // Ticaret için .full da kullanılabilir
             let request = PhotogrammetrySession.Request.modelFile(
                 url: usdzURL,
                 detail: .medium
@@ -154,7 +167,6 @@ final class AppDataModel: ObservableObject {
 
             try session.process(requests: [request])
 
-            // Asenkron çıktıları işle
             for try await output in session.outputs {
                 switch output {
                 case .processingComplete:
@@ -184,19 +196,15 @@ final class AppDataModel: ObservableObject {
                 self.state = .failed("Model üretilemedi:\n\(error.localizedDescription)")
             }
         }
+        #endif
     }
 
-    // ─── Tamamlanma: USDZ → Paylaşım ─────────────────────────────────────
+    // ─── Tamamlanma ─────────────────────────────────────────────────
     private func handleReconstructionComplete(usdzURL: URL, outputDir: URL) async {
-        // USDZ kullanıma hazır
         await MainActor.run {
             self.outputModelURL = usdzURL
             self.reconstructionProgress = 1.0
         }
-
-        // Opsiyonel: USDZ → GLB dönüşümü (ek Python/Blender server'a gönder)
-        // Eğer web viewer için GLB gerekiyorsa:
-        //   await convertToGLB(usdzURL: usdzURL, outputDir: outputDir)
 
         await MainActor.run {
             self.state = .completed
@@ -206,9 +214,11 @@ final class AppDataModel: ObservableObject {
 
     // ─── Sıfırla ─────────────────────────────────────────────────────────
     func reset() {
+        #if !targetEnvironment(simulator)
         captureSession?.cancel()
         captureSession = nil
         cancellables.removeAll()
+        #endif
         shotCount = 0
         feedbackMessages = []
         reconstructionProgress = 0
@@ -218,6 +228,7 @@ final class AppDataModel: ObservableObject {
     }
 
     // ─── Feedback Mesajları ────────────────────────────────────────────────
+    #if !targetEnvironment(simulator)
     private static func feedbackMessage(for feedback: ObjectCaptureSession.Feedback) -> String? {
         switch feedback {
         case .objectTooClose:           return "📏 Nesneye çok yakınsınız, biraz uzaklaşın"
@@ -230,4 +241,5 @@ final class AppDataModel: ObservableObject {
         default:                        return nil
         }
     }
+    #endif
 }

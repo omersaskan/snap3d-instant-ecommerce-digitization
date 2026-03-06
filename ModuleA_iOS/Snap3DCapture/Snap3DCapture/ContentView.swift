@@ -3,7 +3,6 @@
 // Tarama → İşleme → Dışa Aktarma akışını yönetir
 
 import SwiftUI
-import RealityKit
 
 struct ContentView: View {
 
